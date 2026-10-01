@@ -7,8 +7,8 @@ from sklearn.naive_bayes import ComplementNB
 from sklearn.pipeline import Pipeline
 
 
-def build_models(random_state: int = 42) -> dict[str, Pipeline]:
-    vectorizer = lambda: TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True)
+def build_models(random_state: int = 42, min_df: int = 1, max_features: int | None = None) -> dict[str, Pipeline]:
+    vectorizer = lambda: TfidfVectorizer(ngram_range=(1, 2), min_df=min_df, max_features=max_features, sublinear_tf=True)
     return {
         "dummy": Pipeline([("tfidf", vectorizer()), ("model", DummyClassifier(strategy="most_frequent"))]),
         "naive_bayes": Pipeline([("tfidf", vectorizer()), ("model", ComplementNB())]),

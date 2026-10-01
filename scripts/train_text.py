@@ -23,7 +23,7 @@ def main() -> None:
         df[settings.text_column], df[settings.target_column], test_size=0.25,
         random_state=settings.random_state, stratify=stratify,
     )
-    models = build_models(settings.random_state)
+    models = build_models(settings.random_state, min_df=5, max_features=None)
     rows = []
     predictions = {}
     for name, model in models.items():
@@ -41,7 +41,11 @@ def main() -> None:
     pd.DataFrame(rows).sort_values("f1_macro", ascending=False).to_csv(reports / "text_metrics.csv", index=False)
     selected = models["logistic"]
     selected_pred = predictions["logistic"]
-    ConfusionMatrixDisplay.from_predictions(y_test, selected_pred, xticks_rotation=45, cmap="Blues")
+    fig, ax = plt.subplots(figsize=(12, 10))
+    ConfusionMatrixDisplay.from_predictions(
+    y_test, selected_pred, xticks_rotation=45, cmap="Blues",
+    values_format="d", ax=ax,
+    )
     plt.tight_layout()
     plt.savefig(reports / "confusion_text.png", dpi=170)
     errors = pd.DataFrame({"text": x_test, "real": y_test, "predicted": selected_pred})
