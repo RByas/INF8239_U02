@@ -62,7 +62,12 @@ Solo se aplicaron estas transformaciones sobre los datos originales:
 2. **Columna derivada `text`:** se creó uniendo `title` y `content` (con espacios recortados y valores nulos tratados como texto vacío). Si el título está vacío, `text` es igual a `content`.
 3. **Formato:** se guardó en CSV sin índice. Las etiquetas se mantienen como enteros de 0 a 13, que es la codificación de Hugging Face (el CSV original del autor usaba 1 a 14).
 
-No se aplicó limpieza de texto, cambio a minúsculas, eliminación de duplicados, filtrado de filas ni corrección de etiquetas. Cualquier preprocesamiento posterior (por ejemplo, vectorización) se documenta aparte.
+No se aplicó limpieza de texto, cambio a minúsculas, filtrado de filas ni corrección de etiquetas sobre el CSV.
+
+Durante el entrenamiento (`scripts/train_text.py`) se aplican además estas decisiones:
+- Se descartan filas con nulos en `content` o `label` (no hubo ninguna) y se eliminan las 138 filas con `content` duplicado.
+- Se ignora la columna `split` original: se hace una nueva partición estratificada 75/25 con `RANDOM_STATE=42`, que deja 157,466 filas de prueba.
+- Vectorización TF-IDF de 1 a 2 gramas con `min_df=5` y sin límite de `max_features`, ajustada dentro del pipeline (solo con datos de entrenamiento) para evitar fuga.
 
 ## Ejemplos anonimizados
 Los siguientes cinco ejemplos se tomaron de la vista previa pública del dataset en Hugging Face (cuatro de la clase `0 Company` del conjunto de entrenamiento y uno de la documentación del conjunto de prueba). Para esta ficha se reemplazaron los nombres de entidades y lugares por marcadores. La anonimización se aplica solo a estos ejemplos de la documentación; el archivo de datos no se modifica.
@@ -104,11 +109,17 @@ Lo que se observó en la vista previa (primeras filas de la clase Company; no es
 - Restos de la sintaxis de Wikipedia en el texto, como la cadena "Template:What?".
 - Longitudes muy variables: `title` de 2 a 171 caracteres y `content` de 3 a 13,600.
 
-Pendiente de verificar al ejecutar el análisis (completar con los resultados reales):
-- Nulos o vacíos en `title` y `content`: ___
-- Filas duplicadas (mismo `title` + `content`) y duplicados entre `train` y `test`: ___
-- Longitud de `content` (mínimo, mediana, máximo): ___
-- Revisión manual de una muestra por clase para estimar la ambigüedad de las etiquetas: ___
+Resultados de la auditoría (`scripts/audit_data.py`) sobre `data/raw/dataset.csv`:
+- Tamaño: 630,000 filas y 5 columnas (`label`, `title`, `content`, `split`, `text`).
+- Nulos: 0 en `content` y 0 en `label`. La auditoría no revisa `title`, así que los títulos vacíos siguen sin medirse: ___
+- Duplicados de texto: 138 filas con `content` repetido. El script de entrenamiento las elimina (`drop_duplicates`), por lo que quedan unas 629,862 filas.
+- Distribución de clases: 1/14 (0.071429) para cada una de las 14 clases.
+- Longitud de `content` (caracteres): media 281.4, desviación 137.7, mínimo 3, mediana 282, percentil 90 en 458, percentil 99 en 493 y máximo 13,561. Hay unos pocos textos extremadamente largos.
+- Revisión manual de errores: se revisaron 20 errores del modelo, elegidos con semilla 42 sobre los cruces más frecuentes (no es una muestra aleatoria de todos los errores). Resultado con las categorías sugeridas: 9 por ambigüedad entre clases, 5 por etiqueta discutible, 5 por error claro del modelo y 1 por texto insuficiente (ver `reports/error_sample_20.csv`).
+
+Pendiente de medir (completar si se necesita):
+- Duplicados entre `train` y `test` originales: ___
+- Títulos vacíos en `title`: ___
 
 ## Población cubierta y excluida
 **Cubierta:** entidades de 14 tipos (empresas, instituciones educativas, artistas, atletas, cargos públicos, medios de transporte, edificios, lugares naturales, pueblos, animales, plantas, álbumes, películas y obras escritas) con artículo en Wikipedia según DBpedia 2014, muestreadas de forma uniforme por clase.

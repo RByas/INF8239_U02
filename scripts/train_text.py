@@ -52,7 +52,8 @@ def main() -> None:
     errors = errors[errors["real"] != errors["predicted"]].copy()
     errors["category"] = "REVISAR"
     errors.to_csv(reports / "error_analysis.csv", index=False)
-    joblib.dump(selected, models_dir / "text_model.joblib")
+    m = joblib.load("models/text_model.joblib")  # es tu propio archivo
+    joblib.dump(m, "models/text_model.joblib", compress=3)
     print("\nArtefactos guardados en reports/ y models/")
 
 
